@@ -1,0 +1,1722 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MacroFit Pro | Calculadora de Comidas y Macronutrientes</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#ecfdf5',
+                            100: '#d1fae5',
+                            400: '#34d399',
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                        },
+                        protein: '#3b82f6', // Blue
+                        carbs: '#f59e0b',   // Amber
+                        fats: '#ec4899',    // Pink/Rose
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            transition: background-color 0.25s ease, color 0.25s ease;
+        }
+        h1, h2, h3, .font-display {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.1);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(100, 116, 139, 0.4);
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(100, 116, 139, 0.7);
+        }
+        /* SVG Ring Progress Animation */
+        .ring-progress {
+            transition: stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.3s ease;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+        /* Smooth Card Hover */
+        .meal-card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .meal-card:hover {
+            transform: translateY(-2px);
+        }
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            opacity: 1;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100 min-h-screen flex flex-col selection:bg-brand-500 selection:text-white">
+
+    <!-- Top Navigation Bar -->
+    <header class="sticky top-0 z-30 backdrop-blur-md bg-white/85 dark:bg-slate-900/85 border-b border-slate-200 dark:border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3">
+            <!-- Brand Logo -->
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white shadow-lg shadow-brand-500/25">
+                    <i class="ph-bold ph-barbell text-xl"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="font-display font-extrabold text-lg tracking-tight bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">MacroFit</span>
+                        <span class="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-brand-500/15 text-brand-600 dark:text-brand-400 border border-brand-500/20">Pro</span>
+                    </div>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">Planificador Diario de Nutrición y Macros</p>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex items-center gap-2 sm:gap-3">
+                <button onclick="openTdeeModal()" class="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition">
+                    <i class="ph-bold ph-target text-brand-500 text-base"></i>
+                    <span>Objetivos / TDEE</span>
+                </button>
+
+                <button onclick="openCustomFoodModal()" class="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-brand-500 hover:bg-brand-600 text-white shadow-md shadow-brand-500/20 transition">
+                    <i class="ph-bold ph-plus-circle text-base"></i>
+                    <span class="hidden md:inline">Crear Alimento</span>
+                    <span class="md:hidden">Alimento</span>
+                </button>
+
+                <button onclick="openFoodCatalogModal()" title="Ver Base de Datos de Alimentos" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition">
+                    <i class="ph-bold ph-database text-lg"></i>
+                </button>
+
+                <button onclick="confirmResetDay()" title="Reiniciar registro del día" class="p-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20 transition">
+                    <i class="ph-bold ph-arrow-counter-clockwise text-lg"></i>
+                </button>
+
+                <button onclick="toggleTheme()" id="themeToggleBtn" title="Cambiar tema claro/oscuro" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition">
+                    <i class="ph-bold ph-sun text-lg hidden dark:block text-amber-400"></i>
+                    <i class="ph-bold ph-moon text-lg block dark:hidden text-slate-700"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- Top Dashboard: Progress & Distribution -->
+        <section class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <!-- Left/Center: Calorie Ring & Macro Breakdown (8 cols) -->
+            <div class="lg:col-span-8 bg-white dark:bg-slate-900 rounded-2xl p-5 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-5">
+                    <div>
+                        <h2 class="text-lg sm:text-xl font-bold flex items-center gap-2">
+                            <i class="ph-fill ph-fire text-brand-500"></i>
+                            Resumen Nutricional en Tiempo Real
+                        </h2>
+                        <p id="goalProfileBadge" class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                            Meta activa: Mantenimiento • Edición en vivo
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="loadSampleDay()" class="text-xs font-medium px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition flex items-center gap-1">
+                            <i class="ph-bold ph-magic-wand text-brand-500"></i>
+                            Cargar Ejemplo
+                        </button>
+                        <button onclick="copySummaryToClipboard()" class="text-xs font-medium px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition flex items-center gap-1">
+                            <i class="ph-bold ph-copy"></i>
+                            Copiar Resumen
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Ring + Macros Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+                    
+                    <!-- Calorie Ring Chart (5 cols) -->
+                    <div class="md:col-span-5 flex flex-col items-center justify-center p-2 relative">
+                        <div class="relative w-48 h-48 flex items-center justify-center">
+                            <svg class="w-full h-full" viewBox="0 0 160 160">
+                                <!-- Background Track -->
+                                <circle cx="80" cy="80" r="66" fill="none" stroke="currentColor" stroke-width="14" class="text-slate-100 dark:text-slate-800" />
+                                <!-- Progress Track -->
+                                <circle id="calorieRingCircle" cx="80" cy="80" r="66" fill="none" stroke="#10b981" stroke-width="14" stroke-linecap="round" stroke-dasharray="414.69" stroke-dashoffset="414.69" class="ring-progress" />
+                            </svg>
+                            <!-- Center Readout -->
+                            <div class="absolute inset-0 flex flex-col items-center justify-center text-center px-4">
+                                <span id="calRemainingLabel" class="text-[11px] uppercase tracking-wider font-semibold text-slate-400 dark:text-slate-500">Restantes</span>
+                                <span id="calRemainingValue" class="font-display text-3xl font-extrabold text-slate-900 dark:text-white leading-tight">2,200</span>
+                                <span class="text-xs font-medium text-slate-500 dark:text-slate-400">kcal</span>
+                                <span id="calPercentBadge" class="mt-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-500">0%</span>
+                            </div>
+                        </div>
+
+                        <!-- Consumed vs Goal Mini Stats -->
+                        <div class="grid grid-cols-2 gap-4 w-full max-w-xs mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/80 text-center">
+                            <div>
+                                <p class="text-xs text-slate-400">Consumidas</p>
+                                <p class="font-display font-bold text-base text-slate-800 dark:text-slate-100"><span id="calConsumedValue">0</span> kcal</p>
+                            </div>
+                            <div>
+                                <p class="text-xs text-slate-400">Meta Diaria</p>
+                                <p class="font-display font-bold text-base text-brand-600 dark:text-brand-400 cursor-pointer hover:underline" onclick="openTdeeModal()"><span id="calGoalValue">2200</span> kcal <i class="ph-bold ph-pencil-simple text-xs"></i></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Macronutrient Bars (7 cols) -->
+                    <div class="md:col-span-7 space-y-4">
+                        
+                        <!-- Proteínas Card -->
+                        <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-800">
+                            <div class="flex items-center justify-between mb-1.5">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-3 h-3 rounded-full bg-blue-500"></span>
+                                    <span class="font-semibold text-sm">Proteínas</span>
+                                    <span class="text-[11px] text-slate-400">(4 kcal/g)</span>
+                                </div>
+                                <div class="text-right">
+                                    <span id="proCurrent" class="font-display font-bold text-sm text-blue-600 dark:text-blue-400">0g</span>
+                                    <span class="text-xs text-slate-400"> / <span id="proGoal">160</span>g</span>
+                                    <span id="proPercent" class="ml-1.5 text-xs font-bold px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-500">0%</span>
+                                </div>
+                            </div>
+                            <div class="w-full h-2.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                                <div id="proBar" class="h-full bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full transition-all duration-500" style="width: 0%"></div>
+                            </div>
+                            <div class="flex justify-between text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                                <span id="proRemainingText">Faltan 160g</span>
+                                <span id="proKcalShare">0 kcal</span>
+                            </div>
+                        </div>
+
+                        <!-- Carbohidratos Card -->
+                        <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-800">
+                            <div class="flex items-center justify-between mb-1.5">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-3 h-3 rounded-full bg-amber-500"></span>
+                                    <span class="font-semibold text-sm">Carbohidratos</span>
+                                    <span class="text-[11px] text-slate-400">(4 kcal/g)</span>
+                                </div>
+                                <div class="text-right">
+                                    <span id="carbCurrent" class="font-display font-bold text-sm text-amber-600 dark:text-amber-400">0g</span>
+                                    <span class="text-xs text-slate-400"> / <span id="carbGoal">235</span>g</span>
+                                    <span id="carbPercent" class="ml-1.5 text-xs font-bold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500">0%</span>
+                                </div>
+                            </div>
+                            <div class="w-full h-2.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                                <div id="carbBar" class="h-full bg-gradient-to-r from-amber-500 to-yellow-400 rounded-full transition-all duration-500" style="width: 0%"></div>
+                            </div>
+                            <div class="flex justify-between text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                                <span id="carbRemainingText">Faltan 235g</span>
+                                <span id="carbKcalShare">0 kcal</span>
+                            </div>
+                        </div>
+
+                        <!-- Grasas Card -->
+                        <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-800">
+                            <div class="flex items-center justify-between mb-1.5">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-3 h-3 rounded-full bg-pink-500"></span>
+                                    <span class="font-semibold text-sm">Grasas</span>
+                                    <span class="text-[11px] text-slate-400">(9 kcal/g)</span>
+                                </div>
+                                <div class="text-right">
+                                    <span id="fatCurrent" class="font-display font-bold text-sm text-pink-600 dark:text-pink-400">0g</span>
+                                    <span class="text-xs text-slate-400"> / <span id="fatGoal">69</span>g</span>
+                                    <span id="fatPercent" class="ml-1.5 text-xs font-bold px-1.5 py-0.5 rounded bg-pink-500/10 text-pink-500">0%</span>
+                                </div>
+                            </div>
+                            <div class="w-full h-2.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                                <div id="fatBar" class="h-full bg-gradient-to-r from-pink-500 to-rose-400 rounded-full transition-all duration-500" style="width: 0%"></div>
+                            </div>
+                            <div class="flex justify-between text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                                <span id="fatRemainingText">Faltan 69g</span>
+                                <span id="fatKcalShare">0 kcal</span>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Meal Distribution & Quick Macro Split (4 cols) -->
+            <div class="lg:col-span-4 bg-white dark:bg-slate-900 rounded-2xl p-5 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-bold text-base flex items-center gap-2">
+                            <i class="ph-fill ph-chart-pie-slice text-brand-500"></i>
+                            Distribución por Comida
+                        </h3>
+                        <span class="text-xs text-slate-400">% del Día</span>
+                    </div>
+
+                    <!-- Stacked Distribution Bar -->
+                    <div class="w-full h-3.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden flex mb-4 p-0.5 gap-0.5" id="mealDistributionStackedBar">
+                        <div class="h-full bg-slate-300 dark:bg-slate-700 rounded-full w-full"></div>
+                    </div>
+
+                    <!-- Meal Breakdown List -->
+                    <div id="mealDistributionList" class="space-y-2.5 text-xs">
+                        <!-- Populated dynamically via JS -->
+                    </div>
+                </div>
+
+                <!-- Macro Ratio Caloric Split Footer -->
+                <div class="mt-5 pt-4 border-t border-slate-100 dark:border-slate-800">
+                    <div class="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-2">
+                        <span>Proporción Calórica Consumida</span>
+                        <span id="macroSplitRatioText" class="font-semibold text-slate-700 dark:text-slate-300">P: 0% • C: 0% • G: 0%</span>
+                    </div>
+                    <div class="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden flex">
+                        <div id="splitBarPro" class="h-full bg-blue-500 transition-all duration-300" style="width: 33.3%"></div>
+                        <div id="splitBarCarb" class="h-full bg-amber-500 transition-all duration-300" style="width: 33.3%"></div>
+                        <div id="splitBarFat" class="h-full bg-pink-500 transition-all duration-300" style="width: 33.4%"></div>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- Quick Add Bar -->
+        <section class="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 dark:from-slate-900 dark:via-slate-800/90 dark:to-slate-900 text-white rounded-2xl p-4 sm:p-5 shadow-md border border-slate-700/60">
+            <div class="flex flex-col lg:flex-row lg:items-end gap-3.5">
+                <div class="flex-1">
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-brand-400 mb-1.5 flex items-center gap-1.5">
+                        <i class="ph-bold ph-lightning"></i>
+                        Registro Rápido de Alimentos
+                    </label>
+                    <div class="relative">
+                        <i class="ph-bold ph-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <input type="text" id="quickSearchInput" oninput="handleQuickSearch()" onfocus="handleQuickSearch()" placeholder="Buscar alimento (ej. Pechuga de pollo, Arroz cocido, Huevo, Avena, Aguacate...)" class="w-full pl-10 pr-9 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-sm text-white placeholder-slate-400 focus:outline-none focus:border-brand-500 transition">
+                        <button id="clearQuickSearchBtn" onclick="clearQuickSearch()" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white">
+                            <i class="ph-bold ph-x"></i>
+                        </button>
+                        <!-- Dropdown results -->
+                        <div id="quickSearchResults" class="hidden absolute left-0 right-0 top-full mt-1.5 max-h-64 overflow-y-auto rounded-xl bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 shadow-2xl border border-slate-200 dark:border-slate-700 z-40 divide-y divide-slate-100 dark:divide-slate-800"></div>
+                    </div>
+                </div>
+
+                <!-- Meal Selector -->
+                <div class="w-full sm:w-44">
+                    <label class="block text-xs text-slate-300 mb-1">Tiempo de Comida</label>
+                    <select id="quickMealSelect" class="w-full py-2.5 px-3 rounded-xl bg-slate-950/70 border border-slate-700 text-sm text-white focus:outline-none focus:border-brand-500">
+                        <option value="breakfast">☀️ Desayuno</option>
+                        <option value="lunch">🍽️ Comida / Almuerzo</option>
+                        <option value="dinner">🌙 Cena</option>
+                        <option value="snacks">⚡ Snacks / Entreno</option>
+                    </select>
+                </div>
+
+                <!-- Quantity & Unit -->
+                <div class="flex items-end gap-2 w-full sm:w-auto">
+                    <div class="w-28">
+                        <label class="block text-xs text-slate-300 mb-1">Cantidad</label>
+                        <input type="number" id="quickQtyInput" value="100" min="0.1" step="any" oninput="updateQuickPreview()" class="w-full py-2.5 px-3 rounded-xl bg-slate-950/70 border border-slate-700 text-sm text-white font-semibold focus:outline-none focus:border-brand-500">
+                    </div>
+                    <div class="w-36">
+                        <label class="block text-xs text-slate-300 mb-1">Unidad</label>
+                        <select id="quickUnitSelect" onchange="handleQuickUnitChange()" class="w-full py-2.5 px-3 rounded-xl bg-slate-950/70 border border-slate-700 text-sm text-white focus:outline-none focus:border-brand-500">
+                            <option value="grams">Gramos (g/ml)</option>
+                            <option value="portion">Porción / Unidad</option>
+                        </select>
+                    </div>
+                    <button onclick="addSelectedQuickFood()" class="py-2.5 px-5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-bold text-sm shadow-lg shadow-brand-500/25 transition flex items-center gap-1.5 shrink-0">
+                        <i class="ph-bold ph-plus"></i>
+                        <span>Agregar</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Live Macro Preview Pill for Selected Food -->
+            <div id="quickFoodPreviewBar" class="mt-3 pt-2.5 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-300">
+                <span id="quickSelectedFoodName" class="font-medium text-slate-400">Selecciona un alimento del buscador para previsualizar sus macros...</span>
+                <div id="quickSelectedFoodMacros" class="hidden flex items-center gap-3 font-semibold">
+                    <span class="px-2 py-0.5 rounded bg-brand-500/20 text-brand-300"><span id="qpKcal">0</span> kcal</span>
+                    <span class="text-blue-400">P: <span id="qpPro">0</span>g</span>
+                    <span class="text-amber-400">C: <span id="qpCarb">0</span>g</span>
+                    <span class="text-pink-400">G: <span id="qpFat">0</span>g</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4 Meal Sections Grid -->
+        <section id="mealsContainer" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Dynamically rendered by JavaScript: Desayuno, Comida/Almuerzo, Cena, Snacks/Entrenamiento -->
+        </section>
+
+    </main>
+
+    <!-- MODAL 1: TDEE & MACRO GOALS CALCULATOR -->
+    <div id="tdeeModal" class="fixed inset-0 z-50 hidden bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-2xl w-full p-5 sm:p-6 shadow-2xl my-8">
+            <div class="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-brand-500/15 text-brand-500 flex items-center justify-center">
+                        <i class="ph-bold ph-calculator text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-display font-bold text-lg">Configuración de Objetivos Diarios</h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Calcula tu TDEE automáticamente o ajusta tus macronutrientes manualmente</p>
+                    </div>
+                </div>
+                <button onclick="closeTdeeModal()" class="p-2 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                    <i class="ph-bold ph-x text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Mode Tabs -->
+            <div class="grid grid-cols-2 gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl my-4">
+                <button id="tabCalcBtn" onclick="switchGoalTab('calc')" class="py-2 px-3 rounded-lg text-xs sm:text-sm font-bold bg-white dark:bg-slate-900 text-brand-600 dark:text-brand-400 shadow-sm transition">
+                    1. Calculadora TDEE Automática
+                </button>
+                <button id="tabManualBtn" onclick="switchGoalTab('manual')" class="py-2 px-3 rounded-lg text-xs sm:text-sm font-bold text-slate-600 dark:text-slate-400 transition">
+                    2. Edición Manual de Metas
+                </button>
+            </div>
+
+            <!-- TAB 1: Automatic TDEE Calculator -->
+            <div id="goalTabCalc" class="space-y-4">
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Sexo</label>
+                        <select id="tdeeSex" onchange="calculateTdeePreview()" class="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm">
+                            <option value="male">Hombre</option>
+                            <option value="female">Mujer</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Edad (años)</label>
+                        <input type="number" id="tdeeAge" value="28" min="14" max="99" oninput="calculateTdeePreview()" class="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-semibold">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Peso (kg)</label>
+                        <input type="number" id="tdeeWeight" value="75" min="30" max="250" step="0.5" oninput="calculateTdeePreview()" class="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-semibold">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Altura (cm)</label>
+                        <input type="number" id="tdeeHeight" value="175" min="120" max="230" oninput="calculateTdeePreview()" class="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-semibold">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Nivel de Actividad Física</label>
+                        <select id="tdeeActivity" onchange="calculateTdeePreview()" class="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm">
+                            <option value="1.2">Sedentario (Poco o nada de ejercicio)</option>
+                            <option value="1.375">Ligero (Entreno 1-3 días/semana)</option>
+                            <option value="1.55" selected>Moderado (Entreno 3-5 días/semana)</option>
+                            <option value="1.725">Activo (Entreno intenso 6-7 días/semana)</option>
+                            <option value="1.9">Atleta / Muy Activo (Doble sesión o trabajo físico)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Objetivo Físico</label>
+                        <select id="tdeeObjective" onchange="calculateTdeePreview()" class="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm">
+                            <option value="cut_aggressive">Déficit Agresivo (-25% kcal | Definición rápida)</option>
+                            <option value="cut" selected>Déficit Calórico (-18% kcal | Pérdida de grasa)</option>
+                            <option value="maintain">Mantenimiento (0% | Recomposición)</option>
+                            <option value="lean_bulk">Volumen Limpio (+12% kcal | Ganancia muscular)</option>
+                            <option value="bulk">Volumen Muscular (+20% kcal | Superávit alto)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Estrategia de Distribución de Macros</label>
+                    <select id="tdeeMacroSplit" onchange="calculateTdeePreview()" class="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm">
+                        <option value="athletic" selected>Fitness Científico (2.2g Proteína/kg • 0.9g Grasa/kg • Resto Carbos)</option>
+                        <option value="balanced">Equilibrada Clásica (30% Proteína • 40% Carbos • 30% Grasas)</option>
+                        <option value="high_carb">Alto Rendimiento / Energía (25% Proteína • 50% Carbos • 25% Grasas)</option>
+                        <option value="low_carb">Baja en Carbohidratos (35% Proteína • 25% Carbos • 40% Grasas)</option>
+                    </select>
+                </div>
+
+                <!-- Calculated Result Preview Box -->
+                <div class="p-4 rounded-xl bg-brand-500/10 border border-brand-500/20 space-y-3">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                            <span class="text-xs font-semibold uppercase tracking-wider text-brand-600 dark:text-brand-400">Resultado Recomendado</span>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">TMB: <span id="previewBmr">1730</span> kcal | Mantenimiento (TDEE): <span id="previewTdee">2680</span> kcal</p>
+                        </div>
+                        <div class="text-right">
+                            <span id="previewTargetKcal" class="font-display font-extrabold text-2xl text-brand-600 dark:text-brand-400">2,200</span>
+                            <span class="text-xs font-bold text-brand-600 dark:text-brand-400">kcal / día</span>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2 pt-2 border-t border-brand-500/20 text-center">
+                        <div class="bg-white/70 dark:bg-slate-900/70 p-2 rounded-lg">
+                            <p class="text-[11px] text-slate-500">Proteínas</p>
+                            <p class="font-display font-bold text-blue-500"><span id="previewTargetPro">165</span> g</p>
+                        </div>
+                        <div class="bg-white/70 dark:bg-slate-900/70 p-2 rounded-lg">
+                            <p class="text-[11px] text-slate-500">Carbohidratos</p>
+                            <p class="font-display font-bold text-amber-500"><span id="previewTargetCarb">217</span> g</p>
+                        </div>
+                        <div class="bg-white/70 dark:bg-slate-900/70 p-2 rounded-lg">
+                            <p class="text-[11px] text-slate-500">Grasas</p>
+                            <p class="font-display font-bold text-pink-500"><span id="previewTargetFat">68</span> g</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-2 pt-2">
+                    <button onclick="closeTdeeModal()" class="px-4 py-2 rounded-xl text-sm font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">Cancelar</button>
+                    <button onclick="applyCalculatedGoals()" class="px-5 py-2 rounded-xl text-sm font-bold bg-brand-500 hover:bg-brand-600 text-white shadow-lg shadow-brand-500/25">Aplicar Estas Metas</button>
+                </div>
+            </div>
+
+            <!-- TAB 2: Manual Macro Editor -->
+            <div id="goalTabManual" class="hidden space-y-4">
+                <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold">Sincronizar Calorías automáticamente desde Macros</p>
+                        <p class="text-[11px] text-slate-500">Calcula kcal = (Proteínas × 4) + (Carbos × 4) + (Grasas × 9)</p>
+                    </div>
+                    <input type="checkbox" id="syncKcalFromMacros" checked onchange="handleManualMacroInput()" class="w-4 h-4 accent-brand-500 rounded cursor-pointer">
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Meta de Calorías Diarias (kcal)</label>
+                        <input type="number" id="manualKcal" value="2200" min="800" max="10000" oninput="handleManualKcalInput()" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-display font-bold text-base">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-blue-500 mb-1">Proteínas Diarias (g)</label>
+                        <input type="number" id="manualPro" value="165" min="10" max="600" oninput="handleManualMacroInput()" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-blue-500/40 font-display font-bold text-base text-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-amber-500 mb-1">Carbohidratos Diarios (g)</label>
+                        <input type="number" id="manualCarb" value="220" min="0" max="1200" oninput="handleManualMacroInput()" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-amber-500/40 font-display font-bold text-base text-amber-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-pink-500 mb-1">Grasas Diarias (g)</label>
+                        <input type="number" id="manualFat" value="68" min="10" max="400" oninput="handleManualMacroInput()" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-pink-500/40 font-display font-bold text-base text-pink-500">
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-2 pt-2">
+                    <button onclick="closeTdeeModal()" class="px-4 py-2 rounded-xl text-sm font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">Cancelar</button>
+                    <button onclick="applyManualGoals()" class="px-5 py-2 rounded-xl text-sm font-bold bg-brand-500 hover:bg-brand-600 text-white shadow-lg shadow-brand-500/25">Guardar Metas Manuales</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: CREATE CUSTOM FOOD -->
+    <div id="customFoodModal" class="fixed inset-0 z-50 hidden bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-5 sm:p-6 shadow-2xl">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                <div class="flex items-center gap-2">
+                    <div class="w-9 h-9 rounded-xl bg-brand-500/15 text-brand-500 flex items-center justify-center">
+                        <i class="ph-bold ph-cooking-pot text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-display font-bold text-lg">Nuevo Alimento Personalizado</h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Se guardará en tu base de datos local</p>
+                    </div>
+                </div>
+                <button onclick="closeCustomFoodModal()" class="p-2 rounded-lg text-slate-400 hover:text-slate-600">
+                    <i class="ph-bold ph-x text-lg"></i>
+                </button>
+            </div>
+
+            <form onsubmit="saveCustomFood(event)" class="space-y-3.5 mt-4">
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Nombre del Alimento o Marca *</label>
+                    <input type="text" id="cfName" required placeholder="Ej. Pan Ezequiel, Batido Casero, Taco de Sirloin..." class="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Categoría</label>
+                        <select id="cfCategory" class="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm">
+                            <option value="Personalizados">⭐ Personalizado</option>
+                            <option value="Proteínas">🥩 Proteínas</option>
+                            <option value="Carbohidratos">🍚 Carbohidratos</option>
+                            <option value="Grasas">🥑 Grasas</option>
+                            <option value="Lácteos">🥛 Lácteos</option>
+                            <option value="Frutas y Verduras">🍌 Frutas / Verduras</option>
+                            <option value="Suplementos">⚡ Suplementos</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Tipo de Porción Base</label>
+                        <select id="cfBaseType" onchange="toggleCfPortionFields()" class="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm">
+                            <option value="100g">Por cada 100g / 100ml</option>
+                            <option value="unit">Por 1 Unidad / Porción</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="cfPortionDetailsRow" class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Nombre de 1 Porción</label>
+                        <input type="text" id="cfPortionName" value="1 porción (100g)" placeholder="Ej. 1 rebanada, 1 scoop" class="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Peso de la Porción (g)</label>
+                        <input type="number" id="cfPortionGrams" value="100" min="1" step="any" required class="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-semibold">
+                    </div>
+                </div>
+
+                <div class="pt-1">
+                    <p id="cfMacroHeaderLabel" class="text-xs font-semibold text-brand-600 dark:text-brand-400 mb-2">Macronutrientes (por cada 100g):</p>
+                    <div class="grid grid-cols-3 gap-2.5">
+                        <div>
+                            <label class="block text-[11px] font-semibold text-blue-500 mb-1">Proteínas (g) *</label>
+                            <input type="number" id="cfPro" value="0" min="0" step="any" required oninput="updateCfKcalPreview()" class="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-bold">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-semibold text-amber-500 mb-1">Carbos (g) *</label>
+                            <input type="number" id="cfCarb" value="0" min="0" step="any" required oninput="updateCfKcalPreview()" class="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-bold">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-semibold text-pink-500 mb-1">Grasas (g) *</label>
+                            <input type="number" id="cfFat" value="0" min="0" step="any" required oninput="updateCfKcalPreview()" class="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-bold">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-3 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-between">
+                    <span class="text-xs font-medium text-slate-600 dark:text-slate-300">Calorías Calculadas:</span>
+                    <span class="font-display font-extrabold text-base text-brand-600 dark:text-brand-400"><span id="cfKcalPreview">0</span> kcal</span>
+                </div>
+
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeCustomFoodModal()" class="px-4 py-2 rounded-xl text-sm font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">Cancelar</button>
+                    <button type="submit" class="px-5 py-2 rounded-xl text-sm font-bold bg-brand-500 hover:bg-brand-600 text-white shadow-lg shadow-brand-500/25">Guardar Alimento</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 3: FOOD DATABASE CATALOG -->
+    <div id="foodCatalogModal" class="fixed inset-0 z-50 hidden bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-3xl w-full p-5 sm:p-6 shadow-2xl my-8 max-h-[85vh] flex flex-col">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                <div class="flex items-center gap-2">
+                    <i class="ph-bold ph-database text-brand-500 text-xl"></i>
+                    <h3 class="font-display font-bold text-lg">Base de Datos de Alimentos (<span id="catalogCountBadge">0</span>)</h3>
+                </div>
+                <button onclick="closeFoodCatalogModal()" class="p-2 rounded-lg text-slate-400 hover:text-slate-600">
+                    <i class="ph-bold ph-x text-lg"></i>
+                </button>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-2.5 my-3">
+                <input type="text" id="catalogSearchInput" oninput="renderFoodCatalog()" placeholder="Filtrar por nombre..." class="flex-1 px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm">
+                <select id="catalogCategoryFilter" onchange="renderFoodCatalog()" class="px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm">
+                    <option value="all">Todas las categorías</option>
+                    <option value="Personalizados">⭐ Personalizados</option>
+                    <option value="Proteínas">🥩 Proteínas</option>
+                    <option value="Carbohidratos">🍚 Carbohidratos</option>
+                    <option value="Grasas">🥑 Grasas</option>
+                    <option value="Lácteos">🥛 Lácteos</option>
+                    <option value="Frutas y Verduras">🍌 Frutas y Verduras</option>
+                    <option value="Suplementos">⚡ Suplementos</option>
+                </select>
+                <button onclick="closeFoodCatalogModal(); openCustomFoodModal();" class="px-3.5 py-2 rounded-xl bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold shrink-0">
+                    + Nuevo Alimento
+                </button>
+            </div>
+
+            <div id="catalogListContainer" class="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 pr-1">
+                <!-- Populated by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 4: CUSTOM CONFIRMATION DIALOG (No alert/confirm) -->
+    <div id="confirmModal" class="fixed inset-0 z-50 hidden bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-sm w-full p-5 shadow-2xl text-center">
+            <div class="w-12 h-12 rounded-2xl bg-rose-500/15 text-rose-500 flex items-center justify-center mx-auto mb-3">
+                <i class="ph-bold ph-warning-circle text-2xl"></i>
+            </div>
+            <h3 id="confirmModalTitle" class="font-display font-bold text-lg">¿Reiniciar el registro del día?</h3>
+            <p id="confirmModalDesc" class="text-xs text-slate-500 dark:text-slate-400 mt-1 mb-5">
+                Se vaciarán todas las comidas registradas hoy. Tus metas de macros y alimentos personalizados se conservarán.
+            </p>
+            <div class="flex items-center justify-center gap-2.5">
+                <button onclick="closeConfirmModal()" class="flex-1 py-2.5 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">Cancelar</button>
+                <button id="confirmModalActionBtn" class="flex-1 py-2.5 rounded-xl text-xs font-bold bg-rose-500 hover:bg-rose-600 text-white shadow-lg shadow-rose-500/25">Sí, Reiniciar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toastNotification" class="fixed bottom-5 right-5 z-50 pointer-events-none opacity-0 translate-y-3 transition-all duration-300 bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-4 py-3 rounded-xl shadow-xl flex items-center gap-2.5 text-xs font-semibold">
+        <i class="ph-fill ph-check-circle text-brand-400 dark:text-brand-600 text-lg"></i>
+        <span id="toastMessage">Acción completada</span>
+    </div>
+
+    <script>
+        const DEFAULT_FOODS = [
+            // PROTEÍNAS
+            { id: 'p1', name: 'Pechuga de Pollo (Cocida / Plancha)', category: 'Proteínas', kcal: 165, p: 31, c: 0, f: 3.6, portionName: '1 filete mediano', portionGrams: 120 },
+            { id: 'p2', name: 'Pechuga de Pollo (Cruda)', category: 'Proteínas', kcal: 120, p: 22.5, c: 0, f: 2.6, portionName: '1 filete crudo', portionGrams: 150 },
+            { id: 'p3', name: 'Huevo Entero de Gallina', category: 'Proteínas', kcal: 155, p: 13, c: 1.1, f: 11, portionName: '1 pieza grande', portionGrams: 55 },
+            { id: 'p4', name: 'Claras de Huevo', category: 'Proteínas', kcal: 52, p: 11, c: 0.7, f: 0.2, portionName: '1 clara', portionGrams: 33 },
+            { id: 'p5', name: 'Atún en Agua (Drenado)', category: 'Proteínas', kcal: 116, p: 25.5, c: 0, f: 1, portionName: '1 lata drenada', portionGrams: 100 },
+            { id: 'p6', name: 'Carne de Res Magra (Sirloin / Bistec Cocido)', category: 'Proteínas', kcal: 201, p: 29, c: 0, f: 9, portionName: '1 bistec mediano', portionGrams: 120 },
+            { id: 'p7', name: 'Carne Molida de Res 90/10 (Cocida)', category: 'Proteínas', kcal: 217, p: 26, c: 0, f: 12, portionName: '1 porción', portionGrams: 100 },
+            { id: 'p8', name: 'Salmón Fresco (Cocido)', category: 'Proteínas', kcal: 208, p: 20.4, c: 0, f: 13.4, portionName: '1 lonja', portionGrams: 125 },
+            { id: 'p9', name: 'Filete de Tilapia / Pescado Blanco', category: 'Proteínas', kcal: 128, p: 26, c: 0, f: 2.7, portionName: '1 filete', portionGrams: 120 },
+            { id: 'p10', name: 'Pechuga de Pavo (Jamón bajo en grasa)', category: 'Proteínas', kcal: 104, p: 17, c: 4, f: 2, portionName: '2 rebanadas', portionGrams: 50 },
+            { id: 'p11', name: 'Lomo de Cerdo Magro (Cocido)', category: 'Proteínas', kcal: 195, p: 28.5, c: 0, f: 8.2, portionName: '1 medallón', portionGrams: 110 },
+            { id: 'p12', name: 'Camarones Cocidos', category: 'Proteínas', kcal: 99, p: 24, c: 0.2, f: 0.3, portionName: '1 taza', portionGrams: 100 },
+
+            // CARBOHIDRATOS
+            { id: 'c1', name: 'Arroz Blanco (Cocido)', category: 'Carbohidratos', kcal: 130, p: 2.7, c: 28.2, f: 0.3, portionName: '1 taza cocida', portionGrams: 158 },
+            { id: 'c2', name: 'Arroz Blanco (Peso en Crudo)', category: 'Carbohidratos', kcal: 365, p: 7.1, c: 80, f: 0.7, portionName: '1/2 taza crudo', portionGrams: 90 },
+            { id: 'c3', name: 'Avena en Hojuelas (Cruda)', category: 'Carbohidratos', kcal: 389, p: 16.9, c: 66.3, f: 6.9, portionName: '1/2 taza (40g)', portionGrams: 40 },
+            { id: 'c4', name: 'Tortilla de Maíz', category: 'Carbohidratos', kcal: 218, p: 5.7, c: 44.6, f: 2.8, portionName: '1 tortilla estándar', portionGrams: 30 },
+            { id: 'c5', name: 'Tortilla de Harina Integral', category: 'Carbohidratos', kcal: 310, p: 8.5, c: 52, f: 7.5, portionName: '1 pieza mediana', portionGrams: 40 },
+            { id: 'c6', name: 'Pasta / Espagueti (Cocido)', category: 'Carbohidratos', kcal: 158, p: 5.8, c: 30.9, f: 0.9, portionName: '1 taza cocida', portionGrams: 140 },
+            { id: 'c7', name: 'Frijoles Cocidos (De la olla)', category: 'Carbohidratos', kcal: 132, p: 8.9, c: 23.7, f: 0.5, portionName: '1 taza', portionGrams: 170 },
+            { id: 'c8', name: 'Lentejas Cocidas', category: 'Carbohidratos', kcal: 116, p: 9, c: 20, f: 0.4, portionName: '1 taza', portionGrams: 180 },
+            { id: 'c9', name: 'Pan Integral de Caja', category: 'Carbohidratos', kcal: 247, p: 13, c: 41, f: 3.4, portionName: '1 rebanada', portionGrams: 28 },
+            { id: 'c10', name: 'Papa Blanca (Cocida / Hervida)', category: 'Carbohidratos', kcal: 87, p: 1.9, c: 20.1, f: 0.1, portionName: '1 papa mediana', portionGrams: 150 },
+            { id: 'c11', name: 'Camote / Batata (Cocido)', category: 'Carbohidratos', kcal: 90, p: 2, c: 20.7, f: 0.1, portionName: '1 pieza mediana', portionGrams: 150 },
+            { id: 'c12', name: 'Tostada de Maíz Horneada (Saníssimo)', category: 'Carbohidratos', kcal: 383, p: 8.3, c: 80, f: 2.5, portionName: '1 tostada (12g)', portionGrams: 12 },
+            { id: 'c13', name: 'Quinoa (Cocida)', category: 'Carbohidratos', kcal: 120, p: 4.4, c: 21.3, f: 1.9, portionName: '1 taza cocida', portionGrams: 185 },
+
+            // FRUTAS Y VERDURAS
+            { id: 'fv1', name: 'Plátano / Banano (Sin cáscara)', category: 'Frutas y Verduras', kcal: 89, p: 1.1, c: 22.8, f: 0.3, portionName: '1 pieza mediana', portionGrams: 118 },
+            { id: 'fv2', name: 'Manzana Roja / Verde', category: 'Frutas y Verduras', kcal: 52, p: 0.3, c: 13.8, f: 0.2, portionName: '1 pieza mediana', portionGrams: 160 },
+            { id: 'fv3', name: 'Fresas Frescas', category: 'Frutas y Verduras', kcal: 32, p: 0.7, c: 7.7, f: 0.3, portionName: '1 taza (150g)', portionGrams: 150 },
+            { id: 'fv4', name: 'Brócoli al Vapor', category: 'Frutas y Verduras', kcal: 35, p: 2.4, c: 7.2, f: 0.4, portionName: '1 taza', portionGrams: 100 },
+            { id: 'fv5', name: 'Espinacas / Verduras Verdes Mix', category: 'Frutas y Verduras', kcal: 23, p: 2.9, c: 3.6, f: 0.4, portionName: '2 tazas', portionGrams: 80 },
+
+            // GRASAS SALUDABLES
+            { id: 'g1', name: 'Aguacate Hass (Pulpa)', category: 'Grasas', kcal: 160, p: 2, c: 8.5, f: 14.7, portionName: '1/2 aguacate mediano', portionGrams: 75 },
+            { id: 'g2', name: 'Aceite de Oliva Extra Virgen', category: 'Grasas', kcal: 884, p: 0, c: 0, f: 100, portionName: '1 cucharada (10ml)', portionGrams: 10 },
+            { id: 'g3', name: 'Crema de Maní / Cacahuate Natural', category: 'Grasas', kcal: 588, p: 25, c: 20, f: 50, portionName: '1 cucharada llena', portionGrams: 16 },
+            { id: 'g4', name: 'Almendras Naturales', category: 'Grasas', kcal: 579, p: 21.2, c: 21.6, f: 49.9, portionName: '1 puñado (20 pzas)', portionGrams: 24 },
+            { id: 'g5', name: 'Nueces de Castilla', category: 'Grasas', kcal: 654, p: 15.2, c: 13.7, f: 65.2, portionName: '1 puñado (30g)', portionGrams: 30 },
+            { id: 'g6', name: 'Semillas de Chía', category: 'Grasas', kcal: 486, p: 16.5, c: 42.1, f: 30.7, portionName: '1 cucharada', portionGrams: 12 },
+
+            // LÁCTEOS
+            { id: 'l1', name: 'Leche Deslactosada Light / Semidescremada', category: 'Lácteos', kcal: 46, p: 3.3, c: 4.8, f: 1.5, portionName: '1 vaso (250ml)', portionGrams: 250 },
+            { id: 'l2', name: 'Leche Entera de Vaca', category: 'Lácteos', kcal: 61, p: 3.2, c: 4.8, f: 3.3, portionName: '1 vaso (250ml)', portionGrams: 250 },
+            { id: 'l3', name: 'Bebida de Almendras Sin Azúcar', category: 'Lácteos', kcal: 13, p: 0.4, c: 0.3, f: 1.1, portionName: '1 vaso (250ml)', portionGrams: 250 },
+            { id: 'l4', name: 'Yogur Griego Natural Sin Azúcar (0% Grasa)', category: 'Lácteos', kcal: 59, p: 10.3, c: 3.6, f: 0.4, portionName: '1 taza / envase', portionGrams: 150 },
+            { id: 'l5', name: 'Queso Panela Fresco', category: 'Lácteos', kcal: 206, p: 19, c: 2.5, f: 13.5, portionName: '1 rebanada gruesa', portionGrams: 60 },
+            { id: 'l6', name: 'Queso Cottage Bajo en Grasa', category: 'Lácteos', kcal: 82, p: 11, c: 4.3, f: 2.3, portionName: '1/2 taza', portionGrams: 110 },
+            { id: 'l7', name: 'Queso Oaxaca / Mozzarella', category: 'Lácteos', kcal: 300, p: 22, c: 2.2, f: 22, portionName: '1 porción (40g)', portionGrams: 40 },
+
+            // SUPLEMENTOS
+            { id: 's1', name: 'Proteína Whey en Polvo (Isolate / Concentrate)', category: 'Suplementos', kcal: 385, p: 78, c: 7.5, f: 4.8, portionName: '1 scoop estándar', portionGrams: 32 },
+            { id: 's2', name: 'Maltodextrina / Carbohidrato Intra-Entreno', category: 'Suplementos', kcal: 380, p: 0, c: 95, f: 0, portionName: '1 scoop (30g)', portionGrams: 30 },
+            { id: 's3', name: 'Barra de Proteína Fitness', category: 'Suplementos', kcal: 350, p: 33.3, c: 35, f: 11, portionName: '1 barra (60g)', portionGrams: 60 }
+        ];
+
+        const MEAL_DEFINITIONS = [
+            { id: 'breakfast', title: 'Desayuno', subtitle: 'Primera comida del día', icon: 'ph-sun-horizon', color: 'amber', barColor: 'bg-amber-500', badgeBg: 'bg-amber-500/10 text-amber-500' },
+            { id: 'lunch', title: 'Comida / Almuerzo', subtitle: 'Comida principal del mediodía', icon: 'ph-fork-knife', color: 'emerald', barColor: 'bg-emerald-500', badgeBg: 'bg-emerald-500/10 text-emerald-500' },
+            { id: 'dinner', title: 'Cena', subtitle: 'Recuperación nocturna', icon: 'ph-moon-stars', color: 'indigo', barColor: 'bg-indigo-500', badgeBg: 'bg-indigo-500/10 text-indigo-500' },
+            { id: 'snacks', title: 'Snacks / Entrenamiento', subtitle: 'Pre-entreno, post-entreno y colaciones', icon: 'ph-lightning', color: 'rose', barColor: 'bg-rose-500', badgeBg: 'bg-rose-500/10 text-rose-500' }
+        ];
+
+        const STORAGE_KEY = 'macrofit_pro_state_v1';
+
+        let state = {
+            theme: 'dark',
+            goals: {
+                kcal: 2200,
+                p: 165,
+                c: 220,
+                f: 68,
+                profileLabel: 'Déficit Calórico (-18%) • 75kg'
+            },
+            tdeeForm: {
+                sex: 'male',
+                age: 28,
+                weight: 75,
+                height: 175,
+                activity: '1.55',
+                objective: 'cut',
+                macroSplit: 'athletic'
+            },
+            customFoods: [],
+            meals: {
+                breakfast: [],
+                lunch: [],
+                dinner: [],
+                snacks: []
+            }
+        };
+
+        let selectedQuickFoodId = 'p1'; // Default selected food for quick bar
+
+        function loadState() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    state = {
+                        ...state,
+                        ...parsed,
+                        goals: { ...state.goals, ...(parsed.goals || {}) },
+                        meals: {
+                            breakfast: parsed.meals?.breakfast || [],
+                            lunch: parsed.meals?.lunch || [],
+                            dinner: parsed.meals?.dinner || [],
+                            snacks: parsed.meals?.snacks || []
+                        },
+                        customFoods: Array.isArray(parsed.customFoods) ? parsed.customFoods : []
+                    };
+                } else {
+                    // Populate initial light sample items on very first visit so user sees live progress
+                    state.meals.breakfast = [
+                        { uid: 'init1', foodId: 'p3', qty: 3, unit: 'portion' }, // 3 huevos
+                        { uid: 'init2', foodId: 'c3', qty: 50, unit: 'grams' }   // 50g avena
+                    ];
+                    state.meals.lunch = [
+                        { uid: 'init3', foodId: 'p1', qty: 150, unit: 'grams' }, // 150g pechuga cocida
+                        { uid: 'init4', foodId: 'c1', qty: 180, unit: 'grams' }, // 180g arroz cocido
+                        { uid: 'init5', foodId: 'g1', qty: 1, unit: 'portion' }  // 1/2 aguacate
+                    ];
+                }
+            } catch (e) {
+                console.error('Error loading state:', e);
+            }
+            applyTheme();
+        }
+
+        function saveState() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            } catch (e) {
+                console.error('Error saving state:', e);
+            }
+        }
+
+        function getAllFoods() {
+            return [...state.customFoods, ...DEFAULT_FOODS];
+        }
+
+        function getFoodById(foodId) {
+            return getAllFoods().find(f => f.id === foodId) || null;
+        }
+
+        function calculateItemMacros(food, qty, unit) {
+            if (!food || isNaN(qty) || qty <= 0) {
+                return { grams: 0, kcal: 0, p: 0, c: 0, f: 0 };
+            }
+            const totalGrams = unit === 'portion' ? qty * food.portionGrams : qty;
+            const factor = totalGrams / 100;
+            return {
+                grams: Math.round(totalGrams),
+                kcal: Math.round(food.kcal * factor),
+                p: +(food.p * factor).toFixed(1),
+                c: +(food.c * factor).toFixed(1),
+                f: +(food.f * factor).toFixed(1)
+            };
+        }
+
+        function getMealTotals(mealId) {
+            const items = state.meals[mealId] || [];
+            return items.reduce((acc, item) => {
+                const food = getFoodById(item.foodId);
+                const m = calculateItemMacros(food, item.qty, item.unit);
+                acc.kcal += m.kcal;
+                acc.p = +(acc.p + m.p).toFixed(1);
+                acc.c = +(acc.c + m.c).toFixed(1);
+                acc.f = +(acc.f + m.f).toFixed(1);
+                return acc;
+            }, { kcal: 0, p: 0, c: 0, f: 0 });
+        }
+
+        function getDailyTotals() {
+            return MEAL_DEFINITIONS.reduce((acc, meal) => {
+                const t = getMealTotals(meal.id);
+                acc.kcal += t.kcal;
+                acc.p = +(acc.p + t.p).toFixed(1);
+                acc.c = +(acc.c + t.c).toFixed(1);
+                acc.f = +(acc.f + t.f).toFixed(1);
+                return acc;
+            }, { kcal: 0, p: 0, c: 0, f: 0 });
+        }
+
+        function renderDashboard() {
+            const totals = getDailyTotals();
+            const goals = state.goals;
+
+            // Update Profile Label
+            document.getElementById('goalProfileBadge').textContent = `Meta activa: ${goals.profileLabel || 'Personalizada'}`;
+
+            // Calorie Ring
+            const calDiff = goals.kcal - totals.kcal;
+            const calPct = goals.kcal > 0 ? Math.round((totals.kcal / goals.kcal) * 100) : 0;
+            const circumference = 2 * Math.PI * 66; // ~414.69
+            const clampedRatio = Math.min(Math.max(totals.kcal / (goals.kcal || 1), 0), 1);
+            const dashOffset = circumference - (clampedRatio * circumference);
+
+            const ringEl = document.getElementById('calorieRingCircle');
+            ringEl.style.strokeDashoffset = dashOffset;
+
+            const remLabel = document.getElementById('calRemainingLabel');
+            const remValue = document.getElementById('calRemainingValue');
+            const pctBadge = document.getElementById('calPercentBadge');
+
+            if (calDiff >= 0) {
+                remLabel.textContent = 'Restantes';
+                remValue.textContent = calDiff.toLocaleString('es-MX');
+                remValue.className = 'font-display text-3xl font-extrabold text-slate-900 dark:text-white leading-tight';
+                ringEl.setAttribute('stroke', '#10b981');
+                pctBadge.className = 'mt-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-500';
+            } else {
+                remLabel.textContent = 'Excedidas';
+                remValue.textContent = `+${Math.abs(calDiff).toLocaleString('es-MX')}`;
+                remValue.className = 'font-display text-3xl font-extrabold text-rose-500 leading-tight';
+                ringEl.setAttribute('stroke', '#f43f5e');
+                pctBadge.className = 'mt-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-500';
+            }
+
+            pctBadge.textContent = `${calPct}%`;
+            document.getElementById('calConsumedValue').textContent = totals.kcal.toLocaleString('es-MX');
+            document.getElementById('calGoalValue').textContent = goals.kcal.toLocaleString('es-MX');
+
+            // Update Macro Bars (Proteínas, Carbos, Grasas)
+            updateMacroCard('pro', totals.p, goals.p, 4);
+            updateMacroCard('carb', totals.c, goals.c, 4);
+            updateMacroCard('fat', totals.f, goals.f, 9);
+
+            // Render Meal Distribution Widget
+            renderMealDistribution(totals.kcal);
+
+            // Render Caloric Ratio Footer
+            const proKcal = totals.p * 4;
+            const carbKcal = totals.c * 4;
+            const fatKcal = totals.f * 9;
+            const macroTotalKcal = proKcal + carbKcal + fatKcal;
+
+            if (macroTotalKcal > 0) {
+                const pPct = Math.round((proKcal / macroTotalKcal) * 100);
+                const cPct = Math.round((carbKcal / macroTotalKcal) * 100);
+                const fPct = Math.max(0, 100 - pPct - cPct);
+                document.getElementById('macroSplitRatioText').textContent = `P: ${pPct}% • C: ${cPct}% • G: ${fPct}%`;
+                document.getElementById('splitBarPro').style.width = `${pPct}%`;
+                document.getElementById('splitBarCarb').style.width = `${cPct}%`;
+                document.getElementById('splitBarFat').style.width = `${fPct}%`;
+            } else {
+                document.getElementById('macroSplitRatioText').textContent = 'P: 0% • C: 0% • G: 0%';
+                document.getElementById('splitBarPro').style.width = '33.3%';
+                document.getElementById('splitBarCarb').style.width = '33.3%';
+                document.getElementById('splitBarFat').style.width = '33.4%';
+            }
+        }
+
+        function updateMacroCard(prefix, current, goal, kcalPerGram) {
+            const pct = goal > 0 ? Math.round((current / goal) * 100) : 0;
+            const barWidth = Math.min(100, Math.max(0, pct));
+            const diff = +(goal - current).toFixed(1);
+
+            document.getElementById(`${prefix}Current`).textContent = `${current}g`;
+            document.getElementById(`${prefix}Goal`).textContent = goal;
+            document.getElementById(`${prefix}Percent`).textContent = `${pct}%`;
+            document.getElementById(`${prefix}Bar`).style.width = `${barWidth}%`;
+            document.getElementById(`${prefix}KcalShare`).textContent = `${Math.round(current * kcalPerGram)} kcal`;
+
+            const remEl = document.getElementById(`${prefix}RemainingText`);
+            if (diff > 0) {
+                remEl.textContent = `Faltan ${diff}g para tu meta`;
+                remEl.className = 'text-slate-500 dark:text-slate-400';
+            } else if (diff === 0) {
+                remEl.textContent = '¡Meta exacta alcanzada!';
+                remEl.className = 'text-brand-500 font-semibold';
+            } else {
+                remEl.textContent = `Excedido por +${Math.abs(diff)}g`;
+                remEl.className = 'text-rose-500 font-medium';
+            }
+        }
+
+        function renderMealDistribution(totalDayKcal) {
+            const stackedBar = document.getElementById('mealDistributionStackedBar');
+            const listEl = document.getElementById('mealDistributionList');
+
+            let barHtml = '';
+            let listHtml = '';
+
+            MEAL_DEFINITIONS.forEach(meal => {
+                const mTotals = getMealTotals(meal.id);
+                const shareOfDay = totalDayKcal > 0 ? Math.round((mTotals.kcal / totalDayKcal) * 100) : 0;
+                const shareOfGoal = state.goals.kcal > 0 ? Math.round((mTotals.kcal / state.goals.kcal) * 100) : 0;
+
+                if (shareOfDay > 0) {
+                    barHtml += `<div class="h-full ${meal.barColor} first:rounded-l-full last:rounded-r-full transition-all duration-500" style="width: ${shareOfDay}%" title="${meal.title}: ${mTotals.kcal} kcal (${shareOfDay}%)"></div>`;
+                }
+
+                listHtml += `
+                    <div class="flex items-center justify-between py-1">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full ${meal.barColor}"></span>
+                            <span class="font-medium text-slate-700 dark:text-slate-200">${meal.title}</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="font-display font-bold text-slate-800 dark:text-slate-100">${mTotals.kcal} kcal</span>
+                            <span class="w-11 text-right text-[11px] font-bold px-1.5 py-0.5 rounded ${meal.badgeBg}">${shareOfDay}%</span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            stackedBar.innerHTML = barHtml || '<div class="h-full bg-slate-200 dark:bg-slate-800 rounded-full w-full"></div>';
+            listEl.innerHTML = listHtml;
+        }
+
+        function renderMeals() {
+            const container = document.getElementById('mealsContainer');
+            const allFoods = getAllFoods();
+
+            container.innerHTML = MEAL_DEFINITIONS.map(meal => {
+                const items = state.meals[meal.id] || [];
+                const sub = getMealTotals(meal.id);
+                const goalPct = state.goals.kcal > 0 ? Math.round((sub.kcal / state.goals.kcal) * 100) : 0;
+
+                const itemsHtml = items.length === 0
+                    ? `<div class="py-8 text-center border border-dashed border-slate-200 dark:border-slate-800 rounded-xl my-2">
+                            <i class="ph-duotone ph-plate text-2xl text-slate-400 mb-1"></i>
+                            <p class="text-xs text-slate-400">Aún no hay alimentos en ${meal.title.toLowerCase()}.</p>
+                       </div>`
+                    : items.map(item => {
+                        const food = getFoodById(item.foodId);
+                        if (!food) return '';
+                        const macros = calculateItemMacros(food, item.qty, item.unit);
+                        const unitLabel = item.unit === 'portion'
+                            ? `${food.portionName} (${macros.grams}g)`
+                            : `gramos / ml`;
+
+                        return `
+                            <div class="group flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3 rounded-xl bg-slate-50/80 hover:bg-slate-100/80 dark:bg-slate-800/40 dark:hover:bg-slate-800/80 border border-slate-200/60 dark:border-slate-800 transition">
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center gap-2">
+                                        <p class="font-semibold text-sm text-slate-800 dark:text-slate-100 truncate">${food.name}</p>
+                                        ${food.isCustom ? '<span class="text-[10px] px-1.5 py-0.2 rounded bg-brand-500/15 text-brand-500 font-bold">Personal</span>' : ''}
+                                    </div>
+                                    <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs mt-1">
+                                        <span class="font-display font-bold text-slate-900 dark:text-white">${macros.kcal} kcal</span>
+                                        <span class="text-blue-500 font-medium">P: ${macros.p}g</span>
+                                        <span class="text-amber-500 font-medium">C: ${macros.c}g</span>
+                                        <span class="text-pink-500 font-medium">G: ${macros.f}g</span>
+                                    </div>
+                                </div>
+
+                                <!-- Inline Quantity & Unit Editor -->
+                                <div class="flex items-center gap-1.5 shrink-0">
+                                    <input type="number" value="${item.qty}" min="0.1" step="any"
+                                        onchange="updateMealItemQty('${meal.id}', '${item.uid}', this.value)"
+                                        class="w-20 px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold text-center focus:outline-none focus:border-brand-500">
+                                    
+                                    <select onchange="updateMealItemUnit('${meal.id}', '${item.uid}', this.value)"
+                                        class="px-2 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-600 dark:text-slate-300 focus:outline-none focus:border-brand-500 max-w-[135px] truncate">
+                                        <option value="grams" ${item.unit === 'grams' ? 'selected' : ''}>g / ml</option>
+                                        <option value="portion" ${item.unit === 'portion' ? 'selected' : ''}>${food.portionName} (${food.portionGrams}g)</option>
+                                    </select>
+
+                                    <button onclick="removeMealItem('${meal.id}', '${item.uid}')" title="Eliminar alimento"
+                                        class="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition">
+                                        <i class="ph-bold ph-trash text-sm"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+
+                return `
+                    <div class="meal-card bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between overflow-hidden">
+                        <div>
+                            <!-- Meal Card Header -->
+                            <div class="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-xl ${meal.badgeBg} flex items-center justify-center text-lg">
+                                        <i class="ph-fill ${meal.icon}"></i>
+                                    </div>
+                                    <div>
+                                        <div class="flex items-center gap-2">
+                                            <h3 class="font-display font-bold text-base">${meal.title}</h3>
+                                            <span class="text-[11px] font-bold px-2 py-0.5 rounded-full ${meal.badgeBg}">${goalPct}% meta</span>
+                                        </div>
+                                        <p class="text-xs text-slate-400">${meal.subtitle}</p>
+                                    </div>
+                                </div>
+
+                                <!-- Subtotal Badge -->
+                                <div class="text-right">
+                                    <p class="font-display font-extrabold text-base text-slate-900 dark:text-white">${sub.kcal} <span class="text-xs font-normal text-slate-400">kcal</span></p>
+                                    <div class="flex items-center justify-end gap-2 text-[11px] font-semibold">
+                                        <span class="text-blue-500">P:${sub.p}g</span>
+                                        <span class="text-amber-500">C:${sub.c}g</span>
+                                        <span class="text-pink-500">G:${sub.f}g</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Items List -->
+                            <div class="p-4 sm:p-5 space-y-2.5">
+                                ${itemsHtml}
+                            </div>
+                        </div>
+
+                        <!-- Inline Add Food Footer inside each Meal Card -->
+                        <div class="p-3.5 sm:px-5 bg-slate-50/70 dark:bg-slate-950/50 border-t border-slate-100 dark:border-slate-800/80">
+                            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                                <select id="inlineFoodSelect_${meal.id}" onchange="handleInlineFoodChange('${meal.id}')"
+                                    class="flex-1 px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-medium focus:outline-none focus:border-brand-500 truncate">
+                                    ${allFoods.map(f => `<option value="${f.id}">${f.name} (${f.kcal} kcal/100g)</option>`).join('')}
+                                </select>
+                                <div class="flex items-center gap-1.5">
+                                    <input type="number" id="inlineQty_${meal.id}" value="100" min="0.1" step="any"
+                                        class="w-20 px-2.5 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold text-center">
+                                    <select id="inlineUnit_${meal.id}" onchange="handleInlineUnitSwitch('${meal.id}')"
+                                        class="px-2.5 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs">
+                                        <option value="grams">g / ml</option>
+                                        <option value="portion">Porción</option>
+                                    </select>
+                                    <button onclick="addInlineFood('${meal.id}')"
+                                        class="px-3.5 py-2 rounded-xl bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold transition flex items-center gap-1 shrink-0">
+                                        <i class="ph-bold ph-plus"></i>
+                                        <span>Añadir</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function handleInlineUnitSwitch(mealId) {
+            const unitSelect = document.getElementById(`inlineUnit_${mealId}`);
+            const qtyInput = document.getElementById(`inlineQty_${mealId}`);
+            if (unitSelect.value === 'portion') {
+                qtyInput.value = 1;
+            } else {
+                qtyInput.value = 100;
+            }
+        }
+
+        function handleInlineFoodChange(mealId) {
+            const unitSelect = document.getElementById(`inlineUnit_${mealId}`);
+            const qtyInput = document.getElementById(`inlineQty_${mealId}`);
+            if (unitSelect.value === 'portion') {
+                qtyInput.value = 1;
+            }
+        }
+
+        function addInlineFood(mealId) {
+            const foodId = document.getElementById(`inlineFoodSelect_${mealId}`).value;
+            const qty = parseFloat(document.getElementById(`inlineQty_${mealId}`).value);
+            const unit = document.getElementById(`inlineUnit_${mealId}`).value;
+
+            if (!foodId || isNaN(qty) || qty <= 0) return;
+
+            state.meals[mealId].push({
+                uid: 'item_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+                foodId,
+                qty,
+                unit
+            });
+
+            saveState();
+            renderAll();
+            const food = getFoodById(foodId);
+            showToast(`Añadido a ${MEAL_DEFINITIONS.find(m => m.id === mealId).title}: ${food.name}`);
+        }
+
+        function updateMealItemQty(mealId, uid, newQty) {
+            const val = parseFloat(newQty);
+            if (isNaN(val) || val <= 0) {
+                renderAll();
+                return;
+            }
+            const item = state.meals[mealId].find(i => i.uid === uid);
+            if (item) {
+                item.qty = val;
+                saveState();
+                renderAll();
+            }
+        }
+
+        function updateMealItemUnit(mealId, uid, newUnit) {
+            const item = state.meals[mealId].find(i => i.uid === uid);
+            if (item) {
+                item.unit = newUnit;
+                item.qty = newUnit === 'portion' ? 1 : 100;
+                saveState();
+                renderAll();
+            }
+        }
+
+        function removeMealItem(mealId, uid) {
+            state.meals[mealId] = state.meals[mealId].filter(i => i.uid !== uid);
+            saveState();
+            renderAll();
+            showToast('Alimento eliminado de la comida');
+        }
+
+        function handleQuickSearch() {
+            const query = document.getElementById('quickSearchInput').value.trim().toLowerCase();
+            const resultsBox = document.getElementById('quickSearchResults');
+            const clearBtn = document.getElementById('clearQuickSearchBtn');
+
+            clearBtn.classList.toggle('hidden', query.length === 0);
+
+            const allFoods = getAllFoods();
+            const filtered = query.length === 0
+                ? allFoods.slice(0, 12)
+                : allFoods.filter(f => f.name.toLowerCase().includes(query) || f.category.toLowerCase().includes(query));
+
+            if (filtered.length === 0) {
+                resultsBox.innerHTML = `
+                    <div class="p-4 text-center text-xs text-slate-500">
+                        No se encontró "${query}".
+                        <button onclick="openCustomFoodModal()" class="ml-1 text-brand-500 font-bold underline">+ Crear alimento personalizado</button>
+                    </div>
+                `;
+            } else {
+                resultsBox.innerHTML = filtered.map(f => `
+                    <button type="button" onclick="selectQuickFood('${f.id}')" class="w-full text-left px-4 py-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between gap-2 transition">
+                        <div>
+                            <p class="font-semibold text-xs sm:text-sm">${f.name}</p>
+                            <p class="text-[11px] text-slate-400">${f.category} • Porción: ${f.portionName} (${f.portionGrams}g)</p>
+                        </div>
+                        <div class="text-right shrink-0">
+                            <span class="font-display font-bold text-xs text-brand-600 dark:text-brand-400">${f.kcal} kcal/100g</span>
+                            <p class="text-[10px] text-slate-400">P:${f.p}g C:${f.c}g G:${f.f}g</p>
+                        </div>
+                    </button>
+                `).join('');
+            }
+
+            resultsBox.classList.remove('hidden');
+        }
+
+        function selectQuickFood(foodId) {
+            selectedQuickFoodId = foodId;
+            const food = getFoodById(foodId);
+            if (!food) return;
+
+            document.getElementById('quickSearchInput').value = food.name;
+            document.getElementById('clearQuickSearchBtn').classList.remove('hidden');
+            document.getElementById('quickSearchResults').classList.add('hidden');
+
+            // Update unit dropdown text
+            const unitSel = document.getElementById('quickUnitSelect');
+            unitSel.options[1].text = `${food.portionName} (${food.portionGrams}g)`;
+
+            updateQuickPreview();
+        }
+
+        function clearQuickSearch() {
+            document.getElementById('quickSearchInput').value = '';
+            document.getElementById('clearQuickSearchBtn').classList.add('hidden');
+            document.getElementById('quickSearchResults').classList.add('hidden');
+        }
+
+        function handleQuickUnitChange() {
+            const unit = document.getElementById('quickUnitSelect').value;
+            const qtyInput = document.getElementById('quickQtyInput');
+            qtyInput.value = unit === 'portion' ? 1 : 100;
+            updateQuickPreview();
+        }
+
+        function updateQuickPreview() {
+            const food = getFoodById(selectedQuickFoodId);
+            if (!food) return;
+            const qty = parseFloat(document.getElementById('quickQtyInput').value) || 0;
+            const unit = document.getElementById('quickUnitSelect').value;
+            const m = calculateItemMacros(food, qty, unit);
+
+            document.getElementById('quickSelectedFoodName').innerHTML = `Seleccionado: <strong class="text-white">${food.name}</strong> (${m.grams}g netos)`;
+            document.getElementById('quickSelectedFoodMacros').classList.remove('hidden');
+            document.getElementById('qpKcal').textContent = m.kcal;
+            document.getElementById('qpPro').textContent = m.p;
+            document.getElementById('qpCarb').textContent = m.c;
+            document.getElementById('qpFat').textContent = m.f;
+        }
+
+        function addSelectedQuickFood() {
+            const food = getFoodById(selectedQuickFoodId);
+            if (!food) {
+                showToast('Primero selecciona un alimento del buscador');
+                return;
+            }
+            const mealId = document.getElementById('quickMealSelect').value;
+            const qty = parseFloat(document.getElementById('quickQtyInput').value);
+            const unit = document.getElementById('quickUnitSelect').value;
+
+            if (isNaN(qty) || qty <= 0) return;
+
+            state.meals[mealId].push({
+                uid: 'item_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+                foodId: food.id,
+                qty,
+                unit
+            });
+
+            saveState();
+            renderAll();
+            showToast(`Agregado a ${MEAL_DEFINITIONS.find(m => m.id === mealId).title}: ${food.name}`);
+        }
+
+        // Close quick search dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            const box = document.getElementById('quickSearchResults');
+            const input = document.getElementById('quickSearchInput');
+            if (box && !box.contains(e.target) && e.target !== input) {
+                box.classList.add('hidden');
+            }
+        });
+
+        function openTdeeModal() {
+            // Populate fields from current state
+            document.getElementById('tdeeSex').value = state.tdeeForm.sex;
+            document.getElementById('tdeeAge').value = state.tdeeForm.age;
+            document.getElementById('tdeeWeight').value = state.tdeeForm.weight;
+            document.getElementById('tdeeHeight').value = state.tdeeForm.height;
+            document.getElementById('tdeeActivity').value = state.tdeeForm.activity;
+            document.getElementById('tdeeObjective').value = state.tdeeForm.objective;
+            document.getElementById('tdeeMacroSplit').value = state.tdeeForm.macroSplit;
+
+            document.getElementById('manualKcal').value = state.goals.kcal;
+            document.getElementById('manualPro').value = state.goals.p;
+            document.getElementById('manualCarb').value = state.goals.c;
+            document.getElementById('manualFat').value = state.goals.f;
+
+            calculateTdeePreview();
+            document.getElementById('tdeeModal').classList.remove('hidden');
+        }
+
+        function closeTdeeModal() {
+            document.getElementById('tdeeModal').classList.add('hidden');
+        }
+
+        function switchGoalTab(tab) {
+            const isCalc = tab === 'calc';
+            document.getElementById('goalTabCalc').classList.toggle('hidden', !isCalc);
+            document.getElementById('goalTabManual').classList.toggle('hidden', isCalc);
+
+            document.getElementById('tabCalcBtn').className = isCalc
+                ? 'py-2 px-3 rounded-lg text-xs sm:text-sm font-bold bg-white dark:bg-slate-900 text-brand-600 dark:text-brand-400 shadow-sm transition'
+                : 'py-2 px-3 rounded-lg text-xs sm:text-sm font-bold text-slate-600 dark:text-slate-400 transition';
+
+            document.getElementById('tabManualBtn').className = !isCalc
+                ? 'py-2 px-3 rounded-lg text-xs sm:text-sm font-bold bg-white dark:bg-slate-900 text-brand-600 dark:text-brand-400 shadow-sm transition'
+                : 'py-2 px-3 rounded-lg text-xs sm:text-sm font-bold text-slate-600 dark:text-slate-400 transition';
+        }
+
+        function calculateTdeePreview() {
+            const sex = document.getElementById('tdeeSex').value;
+            const age = parseFloat(document.getElementById('tdeeAge').value) || 25;
+            const weight = parseFloat(document.getElementById('tdeeWeight').value) || 70;
+            const height = parseFloat(document.getElementById('tdeeHeight').value) || 170;
+            const activity = parseFloat(document.getElementById('tdeeActivity').value) || 1.55;
+            const objective = document.getElementById('tdeeObjective').value;
+            const split = document.getElementById('tdeeMacroSplit').value;
+
+            // Mifflin-St Jeor BMR
+            const bmr = sex === 'male'
+                ? (10 * weight) + (6.25 * height) - (5 * age) + 5
+                : (10 * weight) + (6.25 * height) - (5 * age) - 161;
+
+            const tdee = Math.round(bmr * activity);
+
+            const objectiveMultipliers = {
+                cut_aggressive: 0.75,
+                cut: 0.82,
+                maintain: 1.0,
+                lean_bulk: 1.12,
+                bulk: 1.20
+            };
+
+            const targetKcal = Math.round(tdee * (objectiveMultipliers[objective] || 1));
+
+            let p = 0, c = 0, f = 0;
+            if (split === 'athletic') {
+                p = Math.round(weight * 2.2);
+                f = Math.round(weight * 0.9);
+                const remainingKcal = Math.max(0, targetKcal - (p * 4) - (f * 9));
+                c = Math.round(remainingKcal / 4);
+            } else if (split === 'balanced') {
+                p = Math.round((targetKcal * 0.30) / 4);
+                c = Math.round((targetKcal * 0.40) / 4);
+                f = Math.round((targetKcal * 0.30) / 9);
+            } else if (split === 'high_carb') {
+                p = Math.round((targetKcal * 0.25) / 4);
+                c = Math.round((targetKcal * 0.50) / 4);
+                f = Math.round((targetKcal * 0.25) / 9);
+            } else if (split === 'low_carb') {
+                p = Math.round((targetKcal * 0.35) / 4);
+                c = Math.round((targetKcal * 0.25) / 4);
+                f = Math.round((targetKcal * 0.40) / 9);
+            }
+
+            document.getElementById('previewBmr').textContent = Math.round(bmr);
+            document.getElementById('previewTdee').textContent = tdee;
+            document.getElementById('previewTargetKcal').textContent = targetKcal;
+            document.getElementById('previewTargetPro').textContent = p;
+            document.getElementById('previewTargetCarb').textContent = c;
+            document.getElementById('previewTargetFat').textContent = f;
+
+            return { targetKcal, p, c, f, weight, objective };
+        }
+
+        function applyCalculatedGoals() {
+            const res = calculateTdeePreview();
+            const objNames = {
+                cut_aggressive: 'Déficit Agresivo',
+                cut: 'Déficit Calórico',
+                maintain: 'Mantenimiento',
+                lean_bulk: 'Volumen Limpio',
+                bulk: 'Volumen Muscular'
+            };
+
+            state.tdeeForm = {
+                sex: document.getElementById('tdeeSex').value,
+                age: parseFloat(document.getElementById('tdeeAge').value) || 28,
+                weight: res.weight,
+                height: parseFloat(document.getElementById('tdeeHeight').value) || 175,
+                activity: document.getElementById('tdeeActivity').value,
+                objective: res.objective,
+                macroSplit: document.getElementById('tdeeMacroSplit').value
+            };
+
+            state.goals = {
+                kcal: res.targetKcal,
+                p: res.p,
+                c: res.c,
+                f: res.f,
+                profileLabel: `${objNames[res.objective]} • ${res.weight}kg`
+            };
+
+            saveState();
+            renderAll();
+            closeTdeeModal();
+            showToast('Nuevos objetivos TDEE aplicados con éxito');
+        }
+
+        function handleManualMacroInput() {
+            const sync = document.getElementById('syncKcalFromMacros').checked;
+            if (!sync) return;
+            const p = parseFloat(document.getElementById('manualPro').value) || 0;
+            const c = parseFloat(document.getElementById('manualCarb').value) || 0;
+            const f = parseFloat(document.getElementById('manualFat').value) || 0;
+            document.getElementById('manualKcal').value = Math.round((p * 4) + (c * 4) + (f * 9));
+        }
+
+        function handleManualKcalInput() {
+            document.getElementById('syncKcalFromMacros').checked = false;
+        }
+
+        function applyManualGoals() {
+            const kcal = Math.max(500, Math.round(parseFloat(document.getElementById('manualKcal').value) || 2000));
+            const p = Math.max(0, Math.round(parseFloat(document.getElementById('manualPro').value) || 150));
+            const c = Math.max(0, Math.round(parseFloat(document.getElementById('manualCarb').value) || 200));
+            const f = Math.max(0, Math.round(parseFloat(document.getElementById('manualFat').value) || 60));
+
+            state.goals = {
+                kcal,
+                p,
+                c,
+                f,
+                profileLabel: 'Metas Manuales Personalizadas'
+            };
+
+            saveState();
+            renderAll();
+            closeTdeeModal();
+            showToast('Metas manuales guardadas');
+        }
+
+        function openCustomFoodModal() {
+            document.getElementById('cfName').value = '';
+            document.getElementById('cfPro').value = '';
+            document.getElementById('cfCarb').value = '';
+            document.getElementById('cfFat').value = '';
+            document.getElementById('cfKcalPreview').textContent = '0';
+            document.getElementById('customFoodModal').classList.remove('hidden');
+        }
+
+        function closeCustomFoodModal() {
+            document.getElementById('customFoodModal').classList.add('hidden');
+        }
+
+        function toggleCfPortionFields() {
+            const baseType = document.getElementById('cfBaseType').value;
+            const label = document.getElementById('cfMacroHeaderLabel');
+            if (baseType === 'unit') {
+                label.textContent = 'Macronutrientes (en 1 Unidad / Porción indicada):';
+                document.getElementById('cfPortionName').value = '1 unidad';
+                document.getElementById('cfPortionGrams').value = 50;
+            } else {
+                label.textContent = 'Macronutrientes (por cada 100g / 100ml):';
+                document.getElementById('cfPortionName').value = '1 porción (100g)';
+                document.getElementById('cfPortionGrams').value = 100;
+            }
+        }
+
+        function updateCfKcalPreview() {
+            const p = parseFloat(document.getElementById('cfPro').value) || 0;
+            const c = parseFloat(document.getElementById('cfCarb').value) || 0;
+            const f = parseFloat(document.getElementById('cfFat').value) || 0;
+            document.getElementById('cfKcalPreview').textContent = Math.round((p * 4) + (c * 4) + (f * 9));
+        }
+
+        function saveCustomFood(e) {
+            e.preventDefault();
+            const name = document.getElementById('cfName').value.trim();
+            const category = document.getElementById('cfCategory').value;
+            const baseType = document.getElementById('cfBaseType').value;
+            const portionName = document.getElementById('cfPortionName').value.trim() || '1 porción';
+            const portionGrams = Math.max(1, parseFloat(document.getElementById('cfPortionGrams').value) || 100);
+
+            const inputP = parseFloat(document.getElementById('cfPro').value) || 0;
+            const inputC = parseFloat(document.getElementById('cfCarb').value) || 0;
+            const inputF = parseFloat(document.getElementById('cfFat').value) || 0;
+
+            // Normalize to per 100g for consistent calculation
+            const normFactor = baseType === 'unit' ? (100 / portionGrams) : 1;
+            const p100 = +(inputP * normFactor).toFixed(1);
+            const c100 = +(inputC * normFactor).toFixed(1);
+            const f100 = +(inputF * normFactor).toFixed(1);
+            const kcal100 = Math.round((p100 * 4) + (c100 * 4) + (f100 * 9));
+
+            const newFood = {
+                id: 'custom_' + Date.now(),
+                name,
+                category,
+                kcal: kcal100,
+                p: p100,
+                c: c100,
+                f: f100,
+                portionName,
+                portionGrams,
+                isCustom: true
+            };
+
+            state.customFoods.unshift(newFood);
+            selectedQuickFoodId = newFood.id;
+            saveState();
+            renderAll();
+            selectQuickFood(newFood.id);
+            closeCustomFoodModal();
+            showToast(`Alimento "${name}" guardado en tu base de datos`);
+        }
+
+        function openFoodCatalogModal() {
+            renderFoodCatalog();
+            document.getElementById('foodCatalogModal').classList.remove('hidden');
+        }
+
+        function closeFoodCatalogModal() {
+            document.getElementById('foodCatalogModal').classList.add('hidden');
+        }
+
+        function renderFoodCatalog() {
+            const query = (document.getElementById('catalogSearchInput')?.value || '').trim().toLowerCase();
+            const cat = document.getElementById('catalogCategoryFilter')?.value || 'all';
+            const all = getAllFoods();
+
+            document.getElementById('catalogCountBadge').textContent = all.length;
+
+            const filtered = all.filter(f => {
+                const matchName = f.name.toLowerCase().includes(query);
+                const matchCat = cat === 'all' || (cat === 'Personalizados' ? f.isCustom : f.category === cat);
+                return matchName && matchCat;
+            });
+
+            const container = document.getElementById('catalogListContainer');
+            if (filtered.length === 0) {
+                container.innerHTML = `<p class="py-8 text-center text-xs text-slate-400">No hay alimentos que coincidan con el filtro.</p>`;
+                return;
+            }
+
+            container.innerHTML = filtered.map(f => `
+                <div class="py-2.5 px-2 flex items-center justify-between gap-2 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-xl transition">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="font-semibold text-xs sm:text-sm">${f.name}</span>
+                            ${f.isCustom ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-brand-500/15 text-brand-500 font-bold">Personal</span>' : ''}
+                        </div>
+                        <p class="text-[11px] text-slate-400">${f.category} • 100g = ${f.kcal} kcal (P:${f.p}g, C:${f.c}g, G:${f.f}g) • Porción: ${f.portionName} (${f.portionGrams}g)</p>
+                    </div>
+                    <div class="flex items-center gap-1.5 shrink-0">
+                        <button onclick="selectQuickFood('${f.id}'); closeFoodCatalogModal();" class="px-2.5 py-1.5 rounded-lg bg-brand-500/10 hover:bg-brand-500/20 text-brand-600 dark:text-brand-400 text-xs font-bold">
+                            Usar
+                        </button>
+                        ${f.isCustom ? `
+                            <button onclick="deleteCustomFood('${f.id}')" class="p-1.5 rounded-lg text-rose-500 hover:bg-rose-500/10" title="Eliminar personalizado">
+                                <i class="ph-bold ph-trash text-sm"></i>
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function deleteCustomFood(foodId) {
+            state.customFoods = state.customFoods.filter(f => f.id !== foodId);
+            // Also clean from meals if used
+            MEAL_DEFINITIONS.forEach(m => {
+                state.meals[m.id] = state.meals[m.id].filter(i => i.foodId !== foodId);
+            });
+            saveState();
+            renderFoodCatalog();
+            renderAll();
+            showToast('Alimento personalizado eliminado');
+        }
+
+        function confirmResetDay() {
+            const modal = document.getElementById('confirmModal');
+            const actionBtn = document.getElementById('confirmModalActionBtn');
+            actionBtn.onclick = () => {
+                state.meals = { breakfast: [], lunch: [], dinner: [], snacks: [] };
+                saveState();
+                renderAll();
+                closeConfirmModal();
+                showToast('Registro del día reiniciado');
+            };
+            modal.classList.remove('hidden');
+        }
+
+        function closeConfirmModal() {
+            document.getElementById('confirmModal').classList.add('hidden');
+        }
+
+        function loadSampleDay() {
+            state.meals = {
+                breakfast: [
+                    { uid: 's_b1', foodId: 'p3', qty: 2, unit: 'portion' },
+                    { uid: 's_b2', foodId: 'p4', qty: 3, unit: 'portion' },
+                    { uid: 's_b3', foodId: 'c3', qty: 60, unit: 'grams' },
+                    { uid: 's_b4', foodId: 'fv1', qty: 1, unit: 'portion' }
+                ],
+                lunch: [
+                    { uid: 's_l1', foodId: 'p1', qty: 180, unit: 'grams' },
+                    { uid: 's_l2', foodId: 'c1', qty: 200, unit: 'grams' },
+                    { uid: 's_l3', foodId: 'g1', qty: 1, unit: 'portion' },
+                    { uid: 's_l4', foodId: 'c4', qty: 2, unit: 'portion' }
+                ],
+                dinner: [
+                    { uid: 's_d1', foodId: 'p8', qty: 150, unit: 'grams' },
+                    { uid: 's_d2', foodId: 'c10', qty: 180, unit: 'grams' },
+                    { uid: 's_d3', foodId: 'fv4', qty: 1, unit: 'portion' }
+                ],
+                snacks: [
+                    { uid: 's_s1', foodId: 's1', qty: 1, unit: 'portion' },
+                    { uid: 's_s2', foodId: 'l4', qty: 1, unit: 'portion' },
+                    { uid: 's_s3', foodId: 'g4', qty: 1, unit: 'portion' }
+                ]
+            };
+            saveState();
+            renderAll();
+            showToast('Día de ejemplo fitness cargado');
+        }
+
+        function copySummaryToClipboard() {
+            const totals = getDailyTotals();
+            const g = state.goals;
+            const lines = [
+                `📊 RESUMEN MACROFIT PRO`,
+                `Calorías: ${totals.kcal} / ${g.kcal} kcal (${Math.round((totals.kcal / g.kcal) * 100)}%)`,
+                `Proteínas: ${totals.p}g / ${g.p}g`,
+                `Carbohidratos: ${totals.c}g / ${g.c}g`,
+                `Grasas: ${totals.f}g / ${g.f}g`,
+                `-------------------------`
+            ];
+            MEAL_DEFINITIONS.forEach(m => {
+                const sub = getMealTotals(m.id);
+                lines.push(`${m.title}: ${sub.kcal} kcal (P:${sub.p}g | C:${sub.c}g | G:${sub.f}g)`);
+            });
+
+            const textArea = document.createElement('textarea');
+            textArea.value = lines.join('\n');
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                showToast('Resumen copiado al portapapeles');
+            } catch (err) {
+                showToast('No se pudo copiar automáticamente');
+            }
+            document.body.removeChild(textArea);
+        }
+
+        function toggleTheme() {
+            state.theme = state.theme === 'dark' ? 'light' : 'dark';
+            applyTheme();
+            saveState();
+        }
+
+        function applyTheme() {
+            const html = document.documentElement;
+            if (state.theme === 'dark') {
+                html.classList.add('dark');
+            } else {
+                html.classList.remove('dark');
+            }
+        }
+
+        let toastTimeout = null;
+        function showToast(msg) {
+            const toast = document.getElementById('toastNotification');
+            document.getElementById('toastMessage').textContent = msg;
+            toast.classList.remove('opacity-0', 'translate-y-3');
+            toast.classList.add('opacity-100', 'translate-y-0');
+
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-3');
+                toast.classList.remove('opacity-100', 'translate-y-0');
+            }, 2600);
+        }
+
+        function renderAll() {
+            renderDashboard();
+            renderMeals();
+            updateQuickPreview();
+        }
+
+        // Initialize Application on Load
+        window.onload = function () {
+            loadState();
+            selectQuickFood(selectedQuickFoodId);
+            clearQuickSearch();
+            renderAll();
+        };
+    </script>
+</body>
+</html>
